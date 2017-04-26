@@ -1,0 +1,5 @@
+// User can not be a Student and Professor on a same Course at the same time
+contradiction():=User(?s),Course(?c),Grade(?g), has_professor(?c,?s),has_course(?g,?c),for_student(?g,?s).
+
+// The user can not be student and Technical Staff at the same time
+contradiction():=STUDENT(?s), dtype(?s,'TechnicalStaff').
