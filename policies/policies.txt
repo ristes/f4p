@@ -1,0 +1,86 @@
+//helper functions for simplification
+	User(?s) && enrolled_in(?s,?sp) 			 						=> STUDENT(?s);
+	User(?prof) && has_professor(?c,?prof)  			 				=> PROFESSOR(?prof);
+
+
+	_context(?ip) && RequestAddress(?ip)								=> FROM_IP(?ip)
+
+	// extended language expression
+	conatainsIp(?na,?ip) {
+
+	} 
+
+
+// TODO: The faculty's,study program's and subject's properties are publicly available for everyone.
+
+// The users' mobile phone number is private
+ Requester(?s)  
+	 && STUDENT(?s) && User(?o) && phone(?o,?ph) 
+ => deny_triple(?o,phone,?ph); 
+
+//The users can view their own properties and the direct properties of the resources connected with them.
+	// Users can see all their direct properties
+	Requester(?s)  && ReadAction(?a) && 
+		User(?s) && _triple(?s,?p,?o) 
+	=> allow_triple(?s,?p,?o); 
+
+// Users can see all their indirect properties
+	Requester(?s)  && ReadAction(?a) 
+		&& User(?s) && _triple(?s,?p,?o) && _triple(?o,?p1,?o2) 
+	=> allow_triple(?o,?p1,?o2); 
+
+// The users can see the properties of the objects connected with them
+	Requester(?s)  && ReadAction(?a) 
+		&& User(?s) && _triple(?o,?p,?s) && _triple(?o,?p1,?o2) 
+	=> allow_triple(?o,?p1,?o2); 
+
+// The users can manage their name, phone or email.
+ Requester(?s)  && ModifyAction(?a)
+	 && User(?s) && _triple(?s,?p,?o) && [ _exp(eq,?p,label) || _exp(eq,?p,phone) || _exp(eq,?p,email)] 
+  => allow_triple(?s,?p,?o); 
+
+
+//TODO: The students can see everything about the professors. (redundant)
+
+// The students can see their course colleagues during the semester.
+ Requester(?s)  && ReadAction(?a) 
+	 && STUDENT(?s) && for_student(?g1,?s) && has_course(?g1,?c) 
+	 && STUDENT(?o) && for_student(?g2,?o) && has_course(?g2,?c) && _bound(?c) && _triple(?o,?p,?v) 
+ => allow_triple(?o,?p,?v); 
+
+// The professors can manage their courses' grades from their faculty's network.
+ Requester(?s)  && ManageAction(?a) && FROM_IP(?ip)
+	 && PROFESSOR(?s) && has_professor(?c,?s) && works_at(?s, ?f)
+	 && has_course(?g,?c) && network_address(?f,?na) && _triple(?g,?p,?o) && _exp(containsIp,?na,?ip)
+ => allow_triple(?g,?p,?o);
+
+// The professors can not manage their inactive courses' grades.
+ Requester(?s)  && ManageAction(?a)
+ 	 && PROFESSOR(?s) && has_professor(?c,?s) && has_course(?g,?c) 
+	 && year(?c,?y) && _triple(?g,?p,?o) && _exp(between,_exp(date,?y,9,1), _exp(date,?y+1,9,1))
+ => deny_triple(?g,?p,?o);
+
+// The professors can see the average grade for every student from their faculty.
+ Requester(?p)  && ReadAction(?a) 
+	 && PROFESSOR(?p) && works_at(?p,?f) && STUDENT(?s) && enrolled_in(?s,?sp) && faculty(?sp,?f) 
+   && Grade(?g) && for_student(?g,?s) && value(?g,?v)
+ => allow_aggregate(AVG,?v); 
+
+// Technical Staff can manage study programs only for his/hers faculty.
+ Requester(?s)  && ManageAction(?a) 
+	 && dtype(?s,TS) && works_at(?s,?f) && StudyProgram(?sp) && faculty(?sp,?f) && _triple(?sp,?p,?o)
+ => allow_triple(?sp,?p,?o); 
+
+ Requester(?s)  && ManageAction(?a) 
+	 && dtype(?s,TS) && works_at(?s,?f) && StudyProgram(?sp) && faculty(?sp,?f) && _triple(?sp,?p,?o)
+ => allow_graph(?sp); 
+
+// Technical Staff can manage everything for all students and professors at their faculty, including the grades for the subjects from the faculty.
+ Requester(?s)  && ManageAction(?a) 
+	 && dtype(?s,TS) && works_at(?s,?f) && _quad(?g,?sub,?p,?o) && _in_dataset(?g,?f)
+ => allow_triple(?sub,?p,?o); 
+
+// Only super users can manage the faculties. 
+ Requester(?s)  && ManageAction(?a) 
+	 && dtype(?s,SA) && _in_dataset(?x,?ds)
+ => allow_dataset(?ds)
