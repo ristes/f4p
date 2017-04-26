@@ -1,0 +1,60 @@
+
+# Unary predicate descirbe that the argument belogs to the predicate class
+Class(RequestAddress). 
+Class(Action). 
+Class(ReadAction). 
+Class(ModifyAction). 
+Class(ManageAction).
+
+Class(Faculty). 
+Class(StudyProgram). 
+Class(Subject). 
+Class(Course). 
+Class(Grade).
+Class(User). 
+
+ // binary predicates define a named relation from the first argument toward the second
+subclassOf(ReadAction,Action). 
+subclassOf(ModifyAction,Action). 
+subclassOf(ManageAction,Action). 
+
+DatatypeProperty(dtype). 
+	domain(dtype,User). 
+	range(dtype,xsd^^string). 
+DatatypeProperty(email). 
+	domain(email,User). 
+	range(email,xsd^^string). 
+DatatypeProperty(phone). 
+	domain(phone,User). 
+	range(phone,xsd^^string). 
+DatatypeProperty(year). 
+	domain(year,Course). 
+	range(year,xsd^^int). 
+DatatypeProperty(network_address). 
+	domain(network_address,User). 
+	range(network_address,xsd^^string). 
+DatatypeProperty(value). 
+	domain(value,Grade). 
+	range(value,xsd^^int). 
+
+ObjectProperty(works_at). 
+	domain(works_at,User). 
+	range(works_at,Faculty). 
+ObjectProperty(faculty). 
+	domain(faculty,StudyProgram). 
+	range(faculty,Faculty). 
+ObjectProperty(enrolled_in). 
+	domain(enrolled_in,User). 
+	range(enrolled_in,StudyProgram). 
+ObjectProperty(subject). 
+	domain(subject,Course). 
+	range(subject,Subject). 
+ObjectProperty(has_professor). 
+	domain(has_professor,Course). 
+	range(has_professor,User). 
+ObjectProperty(for_student). 
+	domain(for_student,Grade). 
+	range(for_student,User). 
+ObjectProperty(has_course). 
+	domain(has_course,Grade). 
+	range(has_course,Course). 
