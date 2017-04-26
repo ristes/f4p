@@ -1,0 +1,123 @@
+
+// The faculty's,study program's and subject's properties are publicly available for everyone.
+
+// The users' mobile phone number is private
+deny_triple(_o,'univ:phone',_ph):= 	triple(_s,'rdf:type','auth:Requester'), 
+									STUDENT(_s), 
+									triple(_o,'rdf:type','univ:User'), 
+									triple(_o,'univ:phone',_ph).
+ 
+//The users can view their own properties and the direct properties of the resources connected with them.
+	// Users can see all their direct properties
+	allow_triple(_s,_p,_o):=	triple(_s,'rdf:type','auth:Requester'), 
+								triple(_a,'rdf:type','auth:ReadAction'), 
+								triple(_s,'rdf:type','univ:User'), 
+								triple(_s,_p,_o). 
+
+	// Users can see all their indirect properties
+	allow_triple(_o,_p1,_o2):=	triple(_s,'rdf:type','auth:Requester'), 
+								triple(_a,'rdf:type','auth:ReadAction'), 
+								triple(_s,'rdf:type','univ:User'), 
+								triple(_s,_p,_o), 
+								triple(_o,_p1,_o2). 
+
+	// The users can see the properties of the objects connected with them
+	allow_triple(_o,_p1,_o2):= 	triple(_s,'rdf:type','auth:Requester'), 	
+								triple(_a,'rdf:type','auth:ReadAction'), 
+								triple(_s,'rdf:type','univ:User'), 
+								triple(_o,_p,_s), 
+								triple(_o,_p1,_o2).
+
+// The users can manage their name, phone or email.
+	allow_triple(_s,email,_o):=	triple(_s,'rdf:type','auth:Requester'), 
+								triple(_a,'rdf:type','auth:ModifyAction'), 
+								triple(_s,'rdf:type','univ:User'), 
+								triple(_s,_p,_o).
+	allow_triple(_s,'univ:phone',_o):=	triple(_s,'rdf:type','auth:Requester'), 
+										triple(_a,'rdf:type','auth:ModifyAction'), 
+										triple(_s,'rdf:type','univ:User'), 
+										triple(_s,_p,_o).
+	allow_triple(_s,label,_o):=	triple(_s,'rdf:type','auth:Requester'), 
+								triple(_a,'rdf:type','auth:ModifyAction'), 
+								triple(_s,'rdf:type','univ:User'), 
+								triple(_s,_p,_o).
+
+// The students can see everything about the professors. (redundant)
+
+// The students can see their course colleagues during the semester.
+allow_triple(_o,_p,_v):=	triple(_s,'rdf:type','auth:Requester'), 
+							triple(_a,'rdf:type','auth:ReadAction'), 
+							STUDENT(_s), 
+							STUDENT(_o), 
+							triple(_g1,'univ:for_student',_s), 
+							triple(_g1,'univ:has_course',_c), 
+							triple(_g2,'univ:for_student',_o), 
+							triple(_g2,'univ:has_course',_c), 
+							triple(_o,_p,_v).  
+
+// The professors can manage their courses' grades from their faculty's network.
+allow_triple(_g,_p,_o):=	triple(_s,'rdf:type','auth:Requester'), 
+							triple(_a,'rdf:type','auth:ManageAction'), 
+							triple(_ip'rdf:type','auth:AgentAddress'), 
+							PROFESSOR(_s), 
+							triple(_c,'univ:has_professor',_s), 
+							triple(_s,'univ:works_at', _f), 
+							triple(_g,'univ:has_course',_c), 
+							triple(_f,'univ:network_address', _na), 
+							triple(_g,_p,_o), 
+							CONTAINS_IP(_na,_ip).
+
+// The professors can not manage their inactive courses' grades.
+deny_triple(_g,_p,_o):=	triple(_s,'rdf:type','auth:Requester'), 
+						triple(_a,'rdf:type','auth:ManageAction'), 
+						PROFESSOR(_s), 
+						triple(_c,'univ:has_professor',_s), 
+						triple(_g,'univ:has_course',_c), 
+						triple(_c,year,_y), 
+						triple(_g,_p,_o), 
+						_exp(between,_exp(date,_y,9,1),_exp(date,_y+1,9,1)). 
+
+// The professors can see the average grade for every student from their faculty.
+allow_aggregate(AVG,_s, 'univ:average_grade',_v) :=	
+							triple(_s,'rdf:type','auth:Requester'),  
+							triple(_a,'rdf:type','auth:ReadAction'), 
+							PROFESSOR(_p), 
+							STUDENT(_s), 
+							triple(_p,'univ:works_at',_f), 
+							triple(_s,'univ:enrolled_in',_sp), 
+							triple(_sp,'univ:faculty',_f), 
+							triple(_g,'rdf:type','univ:Grade'), 
+							triple(_g,'univ:for_student',_s), 
+							triple(_g,value,_v), 
+							groupBy(_s).
+
+// Technical Staff can manage study programs only for his/hers faculty.
+allow_triple(_sp,_p,_o):=	triple(_s,'rdf:type','auth:Requester'), 
+							triple(_a,'rdf:type','auth:ManageAction'), 
+							triple(_s,'univ:dtype','TS'), 
+							triple(_s,'univ:works_at',_f), 
+							triple(_sp,'rdf:type','univ:StudyProgram'), 
+							triple(_sp,'univ:faculty',_f), 
+							triple(_sp,_p,_o). 
+
+allow_graph(_sp):=	triple(_s,'rdf:type','auth:Requester'), 
+					triple(_a,'rdf:type','auth:ManageAction'), 
+					triple(_s,'univ:dtype','TS'), 
+					triple(_s,'univ:works_at',_f), 
+					triple(_sp,'rdf:type','univ:StudyProgram'), 
+					triple(_sp,'univ:faculty',_f), 
+					triple(_sp,_p,_o).
+
+// Technical Staff can manage everything for all students and professors at their faculty, including the grades for the subjects from the faculty.
+allow_triple(_sub,_p,_o):=	triple(_s,'rdf:type','auth:Requester'), 
+							triple(_a,'rdf:type','auth:ManageAction'), 
+							triple(_s,'univ:dtype','TS'), 
+							triple(_s,'univ:works_at',_f), 
+							quad(_g,_sub,_p,_o), 
+							_in_dataset(_g,_f).  
+
+// Only super users can manage the faculties. 
+allow_dataset(_ds):=	triple(_s,'rdf:type','auth:Requester'), 
+						triple(_a,'rdf:type','auth:ManageAction'), 
+						triple(_s,'univ:dtype','SA'), 
+						_in_dataset(_x,_ds).
