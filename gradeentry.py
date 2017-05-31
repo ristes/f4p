@@ -99,6 +99,9 @@ print "Checking satisfiability: {}\n".format(verd)
 if verd == sat:
 	print "Printing the model:"
 	print solver.model()
+if verd == unsat:
+	print "The following predicates are not consistent:"
+	print solver.unsat_core()
 end = datetime.datetime.now()
 duration = end - begining
 print ("Checking completed at: {}\nIt took {}".format(end, duration))
